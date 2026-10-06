@@ -1,0 +1,30 @@
+{
+  "sensors": [
+    "TP2",
+    "Oil_temperature"
+  ],
+  "window": "10min",
+  "steps": 36,
+  "history_days": 14,
+  "interval_width": 0.9,
+  "level_decay": 0.95,
+  "best_method": {
+    "TP2": "prophet_level",
+    "Oil_temperature": "prophet_level"
+  },
+  "mae_all": {
+    "TP2": {
+      "naive": 1.0849305243300666,
+      "seasonal_naive": 1.049615335372224,
+      "prophet": 1.0922256696809685,
+      "prophet_level": 1.0123161242875793
+    },
+    "Oil_temperature": {
+      "naive": 3.369172188865786,
+      "seasonal_naive": 3.352585861368083,
+      "prophet": 3.2600438082964627,
+      "prophet_level": 2.7891627727382002
+    }
+  },
+  "note": "Prophet is refitted on the last history_days of normal data at forecast time; nothing is pickled."
+}
