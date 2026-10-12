@@ -530,7 +530,7 @@ When results become available, include the validation method, test period, thres
 
 **Tanmay Nikhare**
 
-GitHub: [your-github-username](https://github.com/tanmaynikhre45)
+GitHub: [https://github.com/tanmaynikhre45](https://github.com/tanmaynikhre45)
 
 ---
 
