@@ -14,5 +14,11 @@ services:
       timeout: 5s
       retries: 10
 
+  kafka:
+    image: apache/kafka:latest
+    container_name: metropt-kafka
+    ports:
+      - "9092:9092"
+
 volumes:
   tsdb_data:

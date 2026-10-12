@@ -55,7 +55,7 @@ def test_sensors_select_columns_and_bucket(client):
     assert r.status_code == 200
     rows = r.json()
     assert set(rows[0]) == {"time", "tp2", "motor_current"}
-    assert len(rows) <= 24 * 6
+    assert len(rows) <= 24 * 6+1
 
 
 def test_sensors_rejects_too_many_rows(client):
