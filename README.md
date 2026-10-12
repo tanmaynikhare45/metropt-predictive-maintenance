@@ -528,9 +528,9 @@ When results become available, include the validation method, test period, thres
 
 ## Author
 
-**Your Name**
+**Tanmay Nikhare**
 
-GitHub: [your-github-username](https://github.com/<your-username>)
+GitHub: [your-github-username](https://github.com/tanmaynikhre45)
 
 ---
 
