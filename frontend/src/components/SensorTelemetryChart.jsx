@@ -7,17 +7,16 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Legend,
 } from 'recharts';
-import { Sliders, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 const SENSOR_META = {
-  tp2: { label: 'TP2 (Compressor Out)', color: '#06b6d4', unit: 'bar' },
-  tp3: { label: 'TP3 (Pneumatic Panel)', color: '#3b82f6', unit: 'bar' },
-  reservoirs: { label: 'Main Reservoirs', color: '#10b981', unit: 'bar' },
-  motor_current: { label: 'Motor Current', color: '#f59e0b', unit: 'A' },
-  oil_temperature: { label: 'Oil Temperature', color: '#ec4899', unit: '°C' },
-  dv_pressure: { label: 'DV Pressure', color: '#8b5cf6', unit: 'bar' },
+  tp2: { label: 'TP2 (Compressor Out)', color: '#38bdf8', unit: 'bar' },
+  tp3: { label: 'TP3 (Pneumatic Panel)', color: '#60a5fa', unit: 'bar' },
+  reservoirs: { label: 'Main Reservoirs', color: '#34d399', unit: 'bar' },
+  motor_current: { label: 'Motor Current', color: '#fbbf24', unit: 'A' },
+  oil_temperature: { label: 'Oil Temperature', color: '#f87171', unit: '°C' },
+  dv_pressure: { label: 'DV Pressure', color: '#c084fc', unit: 'bar' },
 };
 
 function CustomTooltip({ active, payload, label }) {
@@ -25,16 +24,17 @@ function CustomTooltip({ active, payload, label }) {
 
   return (
     <div style={{
-      background: 'rgba(15, 23, 42, 0.95)',
-      border: '1px solid rgba(148, 163, 184, 0.25)',
+      background: 'rgba(17, 24, 39, 0.95)',
+      border: '1px solid rgba(255, 255, 255, 0.18)',
       borderRadius: '8px',
       padding: '0.75rem 1rem',
-      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+      boxShadow: 'var(--shadow-dropdown)',
       fontFamily: 'var(--font-sans)',
       fontSize: '0.8rem',
       backdropFilter: 'blur(10px)',
+      color: '#ffffff',
     }}>
-      <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.4rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.25rem' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.4rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.25rem' }}>
         {label ? new Date(label).toUTCString().slice(17, 25) + ' UTC' : ''}
       </div>
       {payload.map((entry, index) => {
@@ -45,7 +45,7 @@ function CustomTooltip({ active, payload, label }) {
               <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: entry.color }} />
               {meta.label}:
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#f8fafc' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#ffffff' }}>
               {Number(entry.value).toFixed(2)} {meta.unit}
             </span>
           </div>
@@ -75,7 +75,7 @@ export default function SensorTelemetryChart({ data = [], loading = false }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Activity size={18} color="#06b6d4" />
+            <Activity size={18} color="var(--accent-cyan)" />
             <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.15rem', fontWeight: 600 }}>
               Live Sensor Telemetry
             </h2>
@@ -94,18 +94,19 @@ export default function SensorTelemetryChart({ data = [], loading = false }) {
                 key={key}
                 onClick={() => toggleSensor(key)}
                 style={{
-                  background: isActive ? `${meta.color}25` : 'rgba(30, 41, 59, 0.4)',
-                  color: isActive ? '#f8fafc' : 'var(--text-dim)',
+                  background: isActive ? `${meta.color}22` : 'var(--bg-secondary)',
+                  color: isActive ? meta.color : 'var(--text-muted)',
                   border: `1px solid ${isActive ? meta.color : 'var(--border-subtle)'}`,
                   borderRadius: '999px',
                   padding: '0.25rem 0.65rem',
                   fontSize: '0.75rem',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
                   transition: 'all 0.2s',
+                  boxShadow: 'var(--shadow-sm)'
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: meta.color }} />
@@ -117,12 +118,13 @@ export default function SensorTelemetryChart({ data = [], loading = false }) {
       </div>
 
       {/* Chart Canvas */}
-      <div style={{ width: '100%', height: 320, position: 'relative' }}>
+      <div style={{ width: '100%', height: 300, position: 'relative' }}>
         {loading && (
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.4)',
+            background: 'var(--bg-card)',
+            opacity: 0.8,
             backdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
@@ -137,20 +139,20 @@ export default function SensorTelemetryChart({ data = [], loading = false }) {
 
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={formattedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.08)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
             <XAxis
               dataKey="formattedTime"
-              stroke="#64748b"
+              stroke="var(--chart-axis)"
               fontSize={11}
               tickLine={false}
-              axisLine={{ stroke: 'rgba(148, 163, 184, 0.15)' }}
+              axisLine={{ stroke: 'var(--border-subtle)' }}
             />
             <YAxis
-              stroke="#64748b"
+              stroke="var(--chart-axis)"
               fontSize={11}
               domain={['auto', 'auto']}
               tickLine={false}
-              axisLine={{ stroke: 'rgba(148, 163, 184, 0.15)' }}
+              axisLine={{ stroke: 'var(--border-subtle)' }}
             />
             <Tooltip content={<CustomTooltip />} />
             {activeSensors.map((key) => {
@@ -162,7 +164,7 @@ export default function SensorTelemetryChart({ data = [], loading = false }) {
                   dataKey={key}
                   name={meta.label}
                   stroke={meta.color}
-                  strokeWidth={1.8}
+                  strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
                 />

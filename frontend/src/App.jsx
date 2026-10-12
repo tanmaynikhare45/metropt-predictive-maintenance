@@ -15,6 +15,7 @@ import {
 } from './api';
 
 export default function App() {
+  const [theme, setTheme] = useState('hybrid');
   const [health, setHealth] = useState(null);
   const [latestData, setLatestData] = useState(null);
   const [sensorRows, setSensorRows] = useState([]);
@@ -26,6 +27,10 @@ export default function App() {
   const [refreshInterval, setRefreshInterval] = useState(3000); // 3 seconds
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const fetchData = useCallback(async () => {
     setIsRefreshing(true);
@@ -83,7 +88,7 @@ export default function App() {
 
   return (
     <div className="dashboard-container">
-      {/* 1. Header with System Health & Global Controls */}
+      {/* 1. Header with System Health, Theme Switcher & Global Controls */}
       <Header
         health={health}
         latestTime={latestData?.sensors?.time}
@@ -93,16 +98,18 @@ export default function App() {
         onManualRefresh={fetchData}
         timeRange={timeRange}
         setTimeRange={setTimeRange}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       {/* Backend Connection Alert if down */}
       {errorMessage && (
         <div style={{
-          background: 'rgba(244, 63, 94, 0.15)',
-          border: '1px solid rgba(244, 63, 94, 0.4)',
+          background: 'rgba(225, 29, 72, 0.1)',
+          border: '1px solid rgba(225, 29, 72, 0.3)',
           borderRadius: 'var(--radius-sm)',
           padding: '0.75rem 1.25rem',
-          color: '#fb7185',
+          color: 'var(--accent-rose)',
           fontSize: '0.85rem',
           display: 'flex',
           justifyContent: 'space-between',
@@ -111,7 +118,7 @@ export default function App() {
           <span>⚠️ {errorMessage}. Please ensure <code>uvicorn backend.main:app --reload</code> is running.</span>
           <button
             onClick={fetchData}
-            style={{ background: 'none', border: '1px solid #fb7185', color: '#fb7185', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+            style={{ background: 'none', border: '1px solid var(--accent-rose)', color: 'var(--accent-rose)', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
           >
             Retry
           </button>

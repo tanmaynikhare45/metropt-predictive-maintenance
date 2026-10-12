@@ -17,21 +17,23 @@ function ForecastTooltip({ active, payload, label }) {
 
   return (
     <div style={{
-      background: 'rgba(15, 23, 42, 0.95)',
-      border: '1px solid rgba(148, 163, 184, 0.25)',
+      background: 'var(--tooltip-bg)',
+      border: '1px solid var(--tooltip-border)',
       borderRadius: '8px',
       padding: '0.75rem 1rem',
       fontFamily: 'var(--font-sans)',
       fontSize: '0.8rem',
+      boxShadow: 'var(--shadow-dropdown)',
       backdropFilter: 'blur(10px)',
+      color: 'var(--text-main)',
     }}>
-      <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.4rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.25rem' }}>
         {label ? new Date(label).toUTCString().slice(17, 25) + ' UTC' : ''}
       </div>
       {payload.map((entry, index) => (
         <div key={`fc-${index}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', margin: '0.2rem 0' }}>
           <span style={{ color: entry.color }}>{entry.name}:</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#f8fafc' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-main)' }}>
             {Number(entry.value).toFixed(2)}
           </span>
         </div>
@@ -63,7 +65,6 @@ export default function ForecastPanel() {
     fetchSensorForecast();
   }, [sensor]);
 
-  // Combine history + forecast into a continuous series
   const combined = [];
   if (data?.history) {
     data.history.slice(-36).forEach((h) => {
@@ -91,7 +92,7 @@ export default function ForecastPanel() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <TrendingUp size={18} color="#10b981" />
+            <TrendingUp size={18} color="var(--accent-emerald)" />
             <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.15rem', fontWeight: 600 }}>
               Prophet Time-Series Forecast
             </h2>
@@ -102,17 +103,17 @@ export default function ForecastPanel() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', background: 'rgba(30, 41, 59, 0.6)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
             <button
               className={`btn-control ${sensor === 'TP2' ? 'active' : ''}`}
-              style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }}
+              style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem', border: 'none', boxShadow: 'none' }}
               onClick={() => setSensor('TP2')}
             >
               TP2 Pressure
             </button>
             <button
               className={`btn-control ${sensor === 'Oil_temperature' ? 'active' : ''}`}
-              style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }}
+              style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem', border: 'none', boxShadow: 'none' }}
               onClick={() => setSensor('Oil_temperature')}
             >
               Oil Temp
@@ -129,10 +130,10 @@ export default function ForecastPanel() {
         </div>
       </div>
 
-      <div style={{ width: '100%', height: 260, position: 'relative' }}>
+      <div style={{ width: '100%', height: 300, position: 'relative' }}>
         {loading && (
           <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.4)',
+            position: 'absolute', inset: 0, background: 'var(--bg-card)', opacity: 0.8,
             backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 10, color: 'var(--text-muted)', fontSize: '0.85rem'
           }}>
@@ -145,11 +146,11 @@ export default function ForecastPanel() {
             {error}
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={combined} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.08)" vertical={false} />
-              <XAxis dataKey="formattedTime" stroke="#64748b" fontSize={11} tickLine={false} />
-              <YAxis stroke="#64748b" fontSize={11} domain={['auto', 'auto']} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+              <XAxis dataKey="formattedTime" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: 'var(--border-subtle)' }} />
+              <YAxis stroke="#64748b" fontSize={11} domain={['auto', 'auto']} tickLine={false} axisLine={{ stroke: 'var(--border-subtle)' }} />
               <Tooltip content={<ForecastTooltip />} />
 
               {/* Shaded Confidence Interval */}
@@ -157,16 +158,16 @@ export default function ForecastPanel() {
                 type="monotone"
                 dataKey="upper"
                 stroke="none"
-                fill="#10b981"
-                fillOpacity={0.12}
+                fill="var(--accent-emerald)"
+                fillOpacity={0.16}
                 name="Confidence Upper"
               />
               <Area
                 type="monotone"
                 dataKey="lower"
                 stroke="none"
-                fill="#0f172a"
-                fillOpacity={0.9}
+                fill="var(--bg-card)"
+                fillOpacity={0.95}
                 name="Confidence Lower"
               />
 
@@ -175,7 +176,7 @@ export default function ForecastPanel() {
                 type="monotone"
                 dataKey="actual"
                 name="Historical"
-                stroke="#06b6d4"
+                stroke="var(--accent-cyan)"
                 strokeWidth={2}
                 dot={false}
               />
@@ -185,7 +186,7 @@ export default function ForecastPanel() {
                 type="monotone"
                 dataKey="predicted"
                 name="Forecast"
-                stroke="#10b981"
+                stroke="var(--accent-emerald)"
                 strokeWidth={2}
                 strokeDasharray="4 4"
                 dot={false}

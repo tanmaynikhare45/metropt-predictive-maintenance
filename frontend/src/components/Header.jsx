@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, RefreshCw, Radio, Server, Database, Clock } from 'lucide-react';
+import { Activity, RefreshCw, Radio, Server, Database, Clock, Sun, Moon, Palette } from 'lucide-react';
 
 export default function Header({
   health,
@@ -10,8 +10,17 @@ export default function Header({
   onManualRefresh,
   timeRange,
   setTimeRange,
+  theme,
+  setTheme,
 }) {
   const isHealthy = health?.status === 'ok';
+
+  const toggleTheme = () => {
+    // Cycle through hybrid -> light -> dark -> hybrid
+    const nextTheme = theme === 'hybrid' ? 'light' : theme === 'light' ? 'dark' : 'hybrid';
+    setTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+  };
 
   return (
     <header className="glass-panel" style={{ padding: '1.25rem 1.75rem' }}>
@@ -22,13 +31,13 @@ export default function Header({
             width: '46px',
             height: '46px',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+            background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(6, 182, 212, 0.4)',
+            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
           }}>
-            <Activity size={26} color="#ffffff" />
+            <Activity size={24} color="#ffffff" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -37,9 +46,7 @@ export default function Header({
                 fontSize: '1.5rem',
                 fontWeight: 700,
                 letterSpacing: '-0.02em',
-                background: 'linear-gradient(90deg, #ffffff 0%, #cbd5e1 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: 'var(--text-main)',
               }}>
                 MetroPT-3 APU Predictive Maintenance
               </h1>
@@ -55,33 +62,33 @@ export default function Header({
         </div>
 
         {/* Global Controls & Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
           {/* Latest Data Anchor Time */}
           {latestTime && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.45rem',
-              padding: '0.4rem 0.8rem',
-              background: 'rgba(30, 41, 59, 0.5)',
+              padding: '0.45rem 0.85rem',
+              background: 'var(--bg-secondary)',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-subtle)',
               fontFamily: 'var(--font-mono)',
               fontSize: '0.78rem',
               color: 'var(--text-muted)'
             }}>
-              <Clock size={14} color="#38bdf8" />
-              <span>Data Time: <strong style={{ color: '#f8fafc' }}>{new Date(latestTime).toUTCString().slice(5, 22)}</strong></span>
+              <Clock size={14} color="var(--accent-cyan)" />
+              <span>Data Time: <strong style={{ color: 'var(--text-main)' }}>{new Date(latestTime).toUTCString().slice(5, 22)}</strong></span>
             </div>
           )}
 
           {/* Time Range Selector */}
-          <div style={{ display: 'flex', background: 'rgba(30, 41, 59, 0.6)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
             {[1, 6, 12, 24].map((h) => (
               <button
                 key={h}
                 className={`btn-control ${timeRange === h ? 'active' : ''}`}
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', border: 'none', boxShadow: 'none' }}
                 onClick={() => setTimeRange(h)}
               >
                 {h}h
@@ -96,14 +103,15 @@ export default function Header({
               value={refreshInterval}
               onChange={(e) => setRefreshInterval(Number(e.target.value))}
               style={{
-                background: 'rgba(30, 41, 59, 0.8)',
+                background: 'var(--bg-secondary)',
                 color: 'var(--text-main)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-sm)',
-                padding: '0.4rem 0.65rem',
+                padding: '0.45rem 0.75rem',
                 fontSize: '0.8rem',
                 outline: 'none',
                 cursor: 'pointer',
+                boxShadow: 'var(--shadow-sm)'
               }}
             >
               <option value={0}>Paused</option>
@@ -120,8 +128,19 @@ export default function Header({
             title="Refresh Now"
             disabled={isRefreshing}
           >
-            <RefreshCw size={15} className={isRefreshing ? 'spin' : ''} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
+            <RefreshCw size={15} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
             <span>Sync</span>
+          </button>
+
+          {/* Theme Switcher Button */}
+          <button
+            className="btn-control"
+            onClick={toggleTheme}
+            title={`Current Theme: ${theme.toUpperCase()} (Click to toggle)`}
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', textTransform: 'capitalize' }}
+          >
+            <Palette size={15} color="var(--accent-cyan)" />
+            <span>{theme}</span>
           </button>
         </div>
       </div>
