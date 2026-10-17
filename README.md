@@ -1,5 +1,5 @@
 ::: {align="center"}
-# 🚇 Real-Time Predictive Maintenance for Metro Train Compressors
+# 🚇 Real-Time Predictive Maintenance and forecasting for Metro Train Compressors
 
 ### AI-powered compressor monitoring, anomaly detection, and failure-risk analysis
 
