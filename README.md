@@ -386,7 +386,7 @@ Add real screenshots here as components become available.
 
 ------------------------------------------------------------------------
 
-::: {align="center"}
+
 ⭐ **If you find this project interesting, consider starring the
 repository!**
 
