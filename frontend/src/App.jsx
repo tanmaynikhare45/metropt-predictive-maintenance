@@ -1,160 +1,76 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Header from './components/Header';
-import SystemOverviewCards from './components/SystemOverviewCards';
-import SensorTelemetryChart from './components/SensorTelemetryChart';
-import PredictionsChart from './components/PredictionsChart';
-import ForecastPanel from './components/ForecastPanel';
-import DigitalTwinQuickView from './components/DigitalTwinQuickView';
-import AlertsTable from './components/AlertsTable';
-import {
-  getHealth,
-  getLatest,
-  getSensors,
-  getPredictions,
-  getAlerts,
-} from './api';
+import { useState } from 'react'
+import { API_URL, getConfig, getFailures, getHealth, getLatest } from './api'
+import AlertTable from './components/AlertTable'
+import AnomalyChart from './components/AnomalyChart'
+import Card from './components/Card'
+import ForecastChart from './components/ForecastChart'
+import Header from './components/Header'
+import RiskGauge from './components/RiskGauge'
+import SensorChart from './components/SensorChart'
+import Stats from './components/Stats'
+import TwinPlaceholder from './components/TwinPlaceholder'
+import usePolling from './hooks/usePolling'
 
 export default function App() {
-  const [theme, setTheme] = useState('hybrid');
-  const [health, setHealth] = useState(null);
-  const [latestData, setLatestData] = useState(null);
-  const [sensorRows, setSensorRows] = useState([]);
-  const [iforestRows, setIforestRows] = useState([]);
-  const [riskRows, setRiskRows] = useState([]);
-  const [alerts, setAlerts] = useState([]);
+  // Live: no `end`, the API anchors at the newest reading. Pinned: every request gets end=<time>.
+  const [pinnedEnd, setPinnedEnd] = useState(null)
+  const end = pinnedEnd || undefined
+  const live = !pinnedEnd
 
-  const [timeRange, setTimeRange] = useState(6); // hours
-  const [refreshInterval, setRefreshInterval] = useState(3000); // 3 seconds
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(null);
+  // refresh rates: pinned data never changes, so it is fetched once
+  const fast = live ? 5000 : 0
+  const medium = live ? 10000 : 0
+  const slow = live ? 60000 : 0
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+  const health = usePolling(getHealth, [], 10000)
+  const config = usePolling(getConfig, [], 0)
+  const failures = usePolling(getFailures, [], 0)
+  const latest = usePolling(() => getLatest(end), [end], live ? 3000 : 0)
 
-  const fetchData = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      // 1. Health check
-      const healthRes = await getHealth().catch(() => ({ status: 'error' }));
-      setHealth(healthRes);
-
-      // 2. Latest reading & predictions
-      const latestRes = await getLatest().catch(() => null);
-      if (latestRes) {
-        setLatestData(latestRes);
-      }
-
-      // Determine bucket minutes based on time range to prevent slow charts
-      const bucketMins = timeRange <= 2 ? 1 : timeRange <= 6 ? 2 : timeRange <= 12 ? 5 : 10;
-
-      // 3. Fetch Sensors
-      const sensorsRes = await getSensors({
-        hours: timeRange,
-        bucket_minutes: bucketMins,
-      }).catch(() => []);
-      setSensorRows(sensorsRes);
-
-      // 4. Fetch Predictions (iforest and failure_risk)
-      const [ifRes, riskRes] = await Promise.all([
-        getPredictions({ model: 'iforest', hours: timeRange }).catch(() => []),
-        getPredictions({ model: 'failure_risk', hours: timeRange }).catch(() => []),
-      ]);
-      setIforestRows(ifRes);
-      setRiskRows(riskRes);
-
-      // 5. Fetch Alerts
-      const alertsRes = await getAlerts(20).catch(() => []);
-      setAlerts(alertsRes);
-
-      setErrorMessage(null);
-    } catch (err) {
-      console.error('Fetch error:', err);
-      setErrorMessage('Unable to connect to FastAPI backend at http://127.0.0.1:8000');
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [timeRange]);
-
-  // Initial load and interval polling
-  useEffect(() => {
-    fetchData();
-
-    if (refreshInterval > 0) {
-      const timer = setInterval(fetchData, refreshInterval);
-      return () => clearInterval(timer);
-    }
-  }, [fetchData, refreshInterval]);
+  const apiOk = !health.error
+  const cfg = config.data
+  const fail = failures.data || []
 
   return (
-    <div className="dashboard-container">
-      {/* 1. Header with System Health, Theme Switcher & Global Controls */}
+    <div className="app">
       <Header
-        health={health}
-        latestTime={latestData?.sensors?.time}
-        isRefreshing={isRefreshing}
-        refreshInterval={refreshInterval}
-        setRefreshInterval={setRefreshInterval}
-        onManualRefresh={fetchData}
-        timeRange={timeRange}
-        setTimeRange={setTimeRange}
-        theme={theme}
-        setTheme={setTheme}
+        apiOk={apiOk}
+        latest={latest.data}
+        failures={fail}
+        live={live}
+        pinnedEnd={pinnedEnd}
+        onLive={() => setPinnedEnd(null)}
+        onPin={setPinnedEnd}
       />
 
-      {/* Backend Connection Alert if down */}
-      {errorMessage && (
-        <div style={{
-          background: 'rgba(225, 29, 72, 0.1)',
-          border: '1px solid rgba(225, 29, 72, 0.3)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.75rem 1.25rem',
-          color: 'var(--accent-rose)',
-          fontSize: '0.85rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <span>⚠️ {errorMessage}. Please ensure <code>uvicorn backend.main:app --reload</code> is running.</span>
-          <button
-            onClick={fetchData}
-            style={{ background: 'none', border: '1px solid var(--accent-rose)', color: 'var(--accent-rose)', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
-          >
-            Retry
-          </button>
+      {!apiOk && (
+        <div className="banner error big">
+          Problem with the API at {API_URL}: {health.error}. Start it with <code>uvicorn backend.main:app --reload</code> and check that the database is running. This page retries automatically.
         </div>
       )}
 
-      {/* 2. Key Performance Indicators & APU Overview */}
-      <SystemOverviewCards
-        latestData={latestData}
-      />
+      <main className="grid">
+        <Card
+          className="span-4"
+          title="Failure risk"
+          subtitle={`Model score for a failure within ${cfg?.failure_horizon_hours ?? 6} h (not a calibrated probability)`}
+          loading={latest.loading && !latest.data}
+          error={latest.error}
+        >
+          <RiskGauge value={latest.data?.predictions?.failure_risk?.score} threshold={cfg?.failure_threshold} />
+          <Stats latest={latest.data} config={cfg} />
+        </Card>
 
-      {/* 3. Primary Telemetry & Digital Twin Layout */}
-      <div className="grid-main-charts">
-        <SensorTelemetryChart
-          data={sensorRows}
-          loading={isRefreshing && sensorRows.length === 0}
-        />
-        <DigitalTwinQuickView
-          latestSensors={latestData?.sensors || {}}
-        />
-      </div>
+        <AnomalyChart className="span-8" end={end} refreshMs={fast} config={cfg} failures={fail} />
+        <SensorChart className="span-12" end={end} refreshMs={fast} failures={fail} />
+        <ForecastChart className="span-7" end={end} refreshMs={slow} config={cfg} />
+        <AlertTable className="span-5" refreshMs={medium} />
+        <TwinPlaceholder className="span-12" />
+      </main>
 
-      {/* 4. Machine Learning & Forecasting Panels */}
-      <div className="grid-secondary-panels">
-        <PredictionsChart
-          iforestData={iforestRows}
-          failureRiskData={riskRows}
-          threshold={0.50}
-        />
-        <ForecastPanel />
-      </div>
-
-      {/* 5. Alerts and Diagnostics Log */}
-      <AlertsTable
-        alerts={alerts}
-      />
+      <footer className="foot muted">
+        Scores for past data come from models trained on the same period, so they are for demonstration. Model performance is reported in the notebooks.
+      </footer>
     </div>
-  );
+  )
 }

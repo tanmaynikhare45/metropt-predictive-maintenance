@@ -1,152 +1,74 @@
-import React from 'react';
-import { Activity, RefreshCw, Radio, Server, Database, Clock, Sun, Moon, Palette } from 'lucide-react';
+import { useState } from 'react'
+import { computeStatus } from '../utils/status'
+import { fmtFull, shiftIso, toMs } from '../utils/time'
 
-export default function Header({
-  health,
-  latestTime,
-  isRefreshing,
-  refreshInterval,
-  setRefreshInterval,
-  onManualRefresh,
-  timeRange,
-  setTimeRange,
-  theme,
-  setTheme,
-}) {
-  const isHealthy = health?.status === 'ok';
+const PIN_HOURS_BEFORE = 3
+// where a "Failure N" button jumps to, relative to the failure's start
+const JUMPS = [
+  { hours: -PIN_HOURS_BEFORE, label: '3 h before' },
+  { hours: 0, label: 'at start' },
+  { hours: 6, label: '6 h after' },
+]
 
-  const toggleTheme = () => {
-    // Cycle through hybrid -> light -> dark -> hybrid
-    const nextTheme = theme === 'hybrid' ? 'light' : theme === 'light' ? 'dark' : 'hybrid';
-    setTheme(nextTheme);
-    document.documentElement.setAttribute('data-theme', nextTheme);
-  };
+export default function Header({ apiOk, latest, failures, live, pinnedEnd, onLive, onPin }) {
+  const [jump, setJump] = useState(JUMPS[0].hours)
+  const status = computeStatus(latest, apiOk)
+  const dataTime = latest?.sensors?.time
+
+  const pinDefault = () => dataTime || (failures?.[0] ? shiftIso(failures[0].start_time, -PIN_HOURS_BEFORE) : null)
 
   return (
-    <header className="glass-panel" style={{ padding: '1.25rem 1.75rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        {/* Title and Branding */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
-          }}>
-            <Activity size={24} color="#ffffff" />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <h1 style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                color: 'var(--text-main)',
-              }}>
-                MetroPT-3 APU Predictive Maintenance
-              </h1>
-              <span className={`status-badge ${isHealthy ? 'nominal' : 'critical'}`}>
-                <span className={`pulse-dot ${isHealthy ? 'green' : 'red'}`} />
-                {isHealthy ? 'LIVE PIPELINE' : 'BACKEND OFFLINE'}
-              </span>
-            </div>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-              Air Production Unit Telemetry • Streaming Ingestion & Real-Time ML Inference
-            </p>
-          </div>
-        </div>
-
-        {/* Global Controls & Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-          {/* Latest Data Anchor Time */}
-          {latestTime && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.45rem 0.85rem',
-              background: 'var(--bg-secondary)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.78rem',
-              color: 'var(--text-muted)'
-            }}>
-              <Clock size={14} color="var(--accent-cyan)" />
-              <span>Data Time: <strong style={{ color: 'var(--text-main)' }}>{new Date(latestTime).toUTCString().slice(5, 22)}</strong></span>
-            </div>
-          )}
-
-          {/* Time Range Selector */}
-          <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-            {[1, 6, 12, 24].map((h) => (
-              <button
-                key={h}
-                className={`btn-control ${timeRange === h ? 'active' : ''}`}
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', border: 'none', boxShadow: 'none' }}
-                onClick={() => setTimeRange(h)}
-              >
-                {h}h
-              </button>
-            ))}
-          </div>
-
-          {/* Polling Interval Select */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Refresh:</span>
-            <select
-              value={refreshInterval}
-              onChange={(e) => setRefreshInterval(Number(e.target.value))}
-              style={{
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-main)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.8rem',
-                outline: 'none',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-sm)'
-              }}
-            >
-              <option value={0}>Paused</option>
-              <option value={3000}>3s (Live)</option>
-              <option value={5000}>5s</option>
-              <option value={10000}>10s</option>
-            </select>
-          </div>
-
-          {/* Manual Refresh Button */}
-          <button
-            className="btn-control"
-            onClick={onManualRefresh}
-            title="Refresh Now"
-            disabled={isRefreshing}
-          >
-            <RefreshCw size={15} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
-            <span>Sync</span>
-          </button>
-
-          {/* Theme Switcher Button */}
-          <button
-            className="btn-control"
-            onClick={toggleTheme}
-            title={`Current Theme: ${theme.toUpperCase()} (Click to toggle)`}
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', textTransform: 'capitalize' }}
-          >
-            <Palette size={15} color="var(--accent-cyan)" />
-            <span>{theme}</span>
-          </button>
+    <header className="topbar">
+      <div className="brand">
+        <span className="logo" aria-hidden="true">🚆</span>
+        <div>
+          <h1>Metro compressor (APU): predictive maintenance</h1>
+          <p className="muted">MetroPT-3 dataset · all times UTC</p>
         </div>
       </div>
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
+
+      <div className="topbar-right">
+        <div className={`badge lvl-${status.level}`} title="Overall status from the newest scores">
+          <span className="dot" />
+          {status.label}
+        </div>
+        <div className="clock">
+          <span className="muted">{live ? 'Newest data' : 'Data up to'}</span>
+          <strong>{dataTime ? fmtFull(toMs(dataTime)) : '–'}</strong>
+        </div>
+      </div>
+
+      <div className="timebar">
+        <div className="seg" role="group" aria-label="Time mode">
+          <button className={live ? 'on' : ''} onClick={onLive}>Live</button>
+          <button className={!live ? 'on' : ''} disabled={!pinDefault()} onClick={() => !pinnedEnd && onPin(pinDefault())}>
+            Pinned
+          </button>
+        </div>
+        {!live && pinnedEnd && (
+          <label className="pin-input">
+            <span className="muted">Pinned to (UTC)</span>
+            <input
+              type="datetime-local"
+              value={pinnedEnd.slice(0, 16)}
+              onChange={(e) => e.target.value && onPin(`${e.target.value}:00Z`)}
+            />
+          </label>
+        )}
+        <div className="shortcuts">
+          <span className="muted">Jump to</span>
+          {(failures || []).map((f, i) => (
+            <button key={f.id ?? i} className="chip" onClick={() => onPin(shiftIso(f.start_time, jump))}>
+              Failure {i + 1}
+            </button>
+          ))}
+          <div className="seg" role="group" aria-label="Jump offset">
+            {JUMPS.map((j) => (
+              <button key={j.hours} className={j.hours === jump ? 'on' : ''} onClick={() => setJump(j.hours)}>{j.label}</button>
+            ))}
+          </div>
+        </div>
+      </div>
     </header>
-  );
+  )
 }
