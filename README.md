@@ -3,18 +3,14 @@
 
 ### AI-powered compressor monitoring, anomaly detection, and failure-risk analysis
 
-```{=html}
-<p>
-```
-`<img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white" alt="Python">`{=html}
-`<img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white" alt="FastAPI">`{=html}
-`<img src="https://img.shields.io/badge/React-Frontend-61DAFB?logo=react&logoColor=black" alt="React">`{=html}
-`<img src="https://img.shields.io/badge/Machine%20Learning-Predictive%20Maintenance-8A2BE2" alt="Machine Learning">`{=html}
-`<img src="https://img.shields.io/badge/Apache%20Kafka-Streaming-231F20?logo=apachekafka&logoColor=white" alt="Apache Kafka">`{=html}
-`<img src="https://img.shields.io/badge/Docker-Containers-2496ED?logo=docker&logoColor=white" alt="Docker">`{=html}
-```{=html}
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/React-Frontend-61DAFB?logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/Machine%20Learning-Predictive%20Maintenance-8A2BE2" alt="Machine Learning">
+  <img src="https://img.shields.io/badge/Apache%20Kafka-Streaming-231F20?logo=apachekafka&logoColor=white" alt="Apache Kafka">
+  <img src="https://img.shields.io/badge/Docker-Containers-2496ED?logo=docker&logoColor=white" alt="Docker">
 </p>
-```
 **Project status:** 🚧 In Development
 :::
 
