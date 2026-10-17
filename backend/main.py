@@ -53,9 +53,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MetroPT Predictive Maintenance API", version="0.1.0", lifespan=lifespan)
+# In development the browser origin can be http://localhost:5173 or http://127.0.0.1:5173 (or another
+# Vite port). Set CORS_ALLOW_LOCALHOST=0 in production and list the real origins in CORS_ORIGINS.
+LOCALHOST_REGEX = r"^http://(localhost|127\.0\.0\.1)(:\d+)?$"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")],
+    allow_origins=[o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()],
+    allow_origin_regex=LOCALHOST_REGEX if os.getenv("CORS_ALLOW_LOCALHOST", "1") == "1" else None,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -89,6 +93,24 @@ def health(request: Request):
             "failure": m.failure is not None,
             "forecast_config": m.forecast_cfg is not None,
         },
+    }
+
+
+@app.get("/config")
+def config(request: Request):
+    """Thresholds and settings the dashboard needs to draw its charts."""
+    m = request.app.state.models
+    a, f, fc = m.anomaly_cfg or {}, m.failure_cfg or {}, m.forecast_cfg or {}
+    return {
+        "iforest_threshold": a.get("isolation_forest_threshold"),
+        "lstm_threshold": a.get("lstm_threshold"),
+        "failure_threshold": f.get("threshold"),
+        "failure_horizon_hours": f.get("horizon_hours"),
+        "min_consecutive_windows": a.get("min_consecutive_windows"),
+        "window": a.get("window", "10min"),
+        "forecast_sensors": fc.get("sensors", ["TP2", "Oil_temperature"]),
+        "forecast_steps": fc.get("steps", 36),
+        "forecast_interval": fc.get("interval_width", 0.9),
     }
 
 
