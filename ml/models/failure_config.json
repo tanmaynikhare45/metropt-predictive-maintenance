@@ -97,7 +97,7 @@
     "6": 18,
     "24": 72
   },
-  "threshold": 1.0,
+  "threshold": 0.5,
   "target_false_positive_rate": 0.01,
   "min_consecutive_windows": 3
 }

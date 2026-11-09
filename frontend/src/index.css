@@ -75,6 +75,7 @@ button { font: inherit; cursor: pointer; }
 .seg button:disabled { opacity: 0.4; cursor: not-allowed; }
 .chip { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; font-size: 0.8rem; }
 .chip:hover { border-color: var(--blue); color: var(--blue); }
+.chip.on { background: #1d4ed8; color: white; border-color: #3b82f6; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .pill { background: var(--panel-2); color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px; font-size: 0.8rem; }
 .pill.on { color: var(--blue); border-color: var(--blue); background: rgba(56, 189, 248, 0.08); }

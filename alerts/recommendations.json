@@ -1,0 +1,31 @@
+{
+  "_note": "EXAMPLE rules that map the sensors with the biggest deviation to a suggested action. They are plausible starting points, not engineering truth: confirm them with your faculty guide or the dataset paper and edit freely.",
+  "default": "Review the dashboard around this time and inspect the compressor.",
+  "rules": [
+    {
+      "name": "pressure",
+      "sensors": ["TP2", "TP3", "H1", "DV_pressure", "Reservoirs"],
+      "action": "Inspect the air circuit and its connections for leaks; compare the pressure readings with the reservoirs and the dryer."
+    },
+    {
+      "name": "oil",
+      "sensors": ["Oil_temperature", "Oil_level"],
+      "action": "Check the oil level, the oil condition and the cooling."
+    },
+    {
+      "name": "motor",
+      "sensors": ["Motor_current"],
+      "action": "Inspect the motor and the compressor load; look for mechanical wear or a blockage."
+    },
+    {
+      "name": "duty",
+      "sensors": ["COMP", "LPS", "MPG", "Pressure_switch"],
+      "action": "The compressor is cycling differently from normal (running more or less often); check for air leaks and the pressure switches."
+    },
+    {
+      "name": "valves",
+      "sensors": ["DV_eletric", "Towers", "Caudal_impulses"],
+      "action": "Inspect the valves and the dryer towers."
+    }
+  ]
+}

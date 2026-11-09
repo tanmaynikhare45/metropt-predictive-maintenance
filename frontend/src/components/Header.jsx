@@ -12,10 +12,30 @@ const JUMPS = [
 
 export default function Header({ apiOk, latest, failures, live, pinnedEnd, onLive, onPin }) {
   const [jump, setJump] = useState(JUMPS[0].hours)
+  const [activeFailure, setActiveFailure] = useState(null)
   const status = computeStatus(latest, apiOk)
   const dataTime = latest?.sensors?.time
 
   const pinDefault = () => dataTime || (failures?.[0] ? shiftIso(failures[0].start_time, -PIN_HOURS_BEFORE) : null)
+
+  const handleSelectFailure = (f) => {
+    setActiveFailure(f)
+    onPin(shiftIso(f.start_time, jump))
+  }
+
+  const handleSelectOffset = (hours) => {
+    setJump(hours)
+    const target = activeFailure || failures?.[0]
+    if (target) {
+      setActiveFailure(target)
+      onPin(shiftIso(target.start_time, hours))
+    }
+  }
+
+  const handleLive = () => {
+    setActiveFailure(null)
+    onLive()
+  }
 
   return (
     <header className="topbar">
@@ -40,7 +60,7 @@ export default function Header({ apiOk, latest, failures, live, pinnedEnd, onLiv
 
       <div className="timebar">
         <div className="seg" role="group" aria-label="Time mode">
-          <button className={live ? 'on' : ''} onClick={onLive}>Live</button>
+          <button className={live ? 'on' : ''} onClick={handleLive}>Live</button>
           <button className={!live ? 'on' : ''} disabled={!pinDefault()} onClick={() => !pinnedEnd && onPin(pinDefault())}>
             Pinned
           </button>
@@ -50,7 +70,7 @@ export default function Header({ apiOk, latest, failures, live, pinnedEnd, onLiv
             <span className="muted">Pinned to (UTC)</span>
             <input
               type="datetime-local"
-              value={pinnedEnd.slice(0, 16)}
+              value={pinnedEnd.replace(' ', 'T').slice(0, 16)}
               onChange={(e) => e.target.value && onPin(`${e.target.value}:00Z`)}
             />
           </label>
@@ -58,13 +78,23 @@ export default function Header({ apiOk, latest, failures, live, pinnedEnd, onLiv
         <div className="shortcuts">
           <span className="muted">Jump to</span>
           {(failures || []).map((f, i) => (
-            <button key={f.id ?? i} className="chip" onClick={() => onPin(shiftIso(f.start_time, jump))}>
+            <button
+              key={f.id ?? i}
+              className={`chip ${!live && activeFailure?.id === f.id ? 'on' : ''}`}
+              onClick={() => handleSelectFailure(f)}
+            >
               Failure {i + 1}
             </button>
           ))}
           <div className="seg" role="group" aria-label="Jump offset">
             {JUMPS.map((j) => (
-              <button key={j.hours} className={j.hours === jump ? 'on' : ''} onClick={() => setJump(j.hours)}>{j.label}</button>
+              <button
+                key={j.hours}
+                className={j.hours === jump ? 'on' : ''}
+                onClick={() => handleSelectOffset(j.hours)}
+              >
+                {j.label}
+              </button>
             ))}
           </div>
         </div>

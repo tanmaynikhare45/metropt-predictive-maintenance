@@ -1,0 +1,10 @@
+# ---- add these lines to your project-root .env (the first one is the secret webhook URL) ----
+SLACK_WEBHOOK_URL=
+DASHBOARD_URL=http://localhost:5173
+
+# ---- optional tuning (the defaults are shown) ----
+# An incident ends after this many clean 10-minute windows in a row (6 = 1 hour)
+ALERT_RECOVER_WINDOWS=6
+# While an incident goes on, remind every N hours of DATA time, at most N times
+ALERT_REMINDER_HOURS=6
+ALERT_MAX_REMINDERS=4

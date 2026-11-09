@@ -4,7 +4,7 @@ import { topSensorsText } from '../utils/format'
 import { fmtFull, toMs } from '../utils/time'
 import Card from './Card'
 
-export default function AlertTable({ refreshMs, className }) {
+export default function AlertTable({ refreshMs, className, onPin }) {
   const { data, error, loading } = usePolling(() => getAlerts(20), [], refreshMs)
   const rows = data || []
 
@@ -12,7 +12,7 @@ export default function AlertTable({ refreshMs, className }) {
     <Card
       className={className}
       title="Alert history"
-      subtitle="Newest first"
+      subtitle={onPin ? "Newest first · click a row to pin to that alert" : "Newest first"}
       loading={loading && !data}
       error={error}
       empty={!loading && rows.length === 0}
@@ -25,7 +25,12 @@ export default function AlertTable({ refreshMs, className }) {
           </thead>
           <tbody>
             {rows.map((a) => (
-              <tr key={a.id}>
+              <tr
+                key={a.id}
+                onClick={() => onPin && onPin(a.time)}
+                style={{ cursor: onPin ? 'pointer' : 'default' }}
+                title={onPin ? 'Click to pin dashboard to this alert time' : undefined}
+              >
                 <td>{fmtFull(toMs(a.time))}</td>
                 <td><span className={`tag sev-${a.severity}`}>{a.severity}</span></td>
                 <td>{a.kind}</td>

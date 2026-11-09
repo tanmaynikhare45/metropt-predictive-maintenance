@@ -47,16 +47,20 @@ CREATE TABLE IF NOT EXISTS forecasts (
 );
 CREATE INDEX IF NOT EXISTS forecasts_sensor_made_idx ON forecasts (sensor, made_at DESC);
 
--- ---------------------------------------------------------------- alerts (filled in Phase 6)
+-- ---------------------------------------------------------------- alerts (Phase 6)
 CREATE TABLE IF NOT EXISTS alerts (
-    id          BIGSERIAL PRIMARY KEY,
-    time        TIMESTAMPTZ NOT NULL,
-    kind        TEXT NOT NULL,             -- 'anomaly' | 'failure_risk'
-    severity    TEXT NOT NULL,             -- 'warning' | 'critical'
-    message     TEXT,
-    top_sensors JSONB
+    id           BIGSERIAL PRIMARY KEY,
+    time         TIMESTAMPTZ NOT NULL,
+    kind         TEXT NOT NULL,            -- 'anomaly' | 'failure_risk' | 'recovered'
+    severity     TEXT NOT NULL,            -- 'warning' | 'critical' | 'info'
+    message      TEXT,
+    top_sensors  JSONB,
+    delivered    BOOLEAN NOT NULL DEFAULT FALSE,   -- did the Slack message go out?
+    delivered_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS alerts_time_idx ON alerts (time DESC);
+-- one alert per kind and time: re-processing after a crash cannot create duplicates
+CREATE UNIQUE INDEX IF NOT EXISTS alerts_kind_time_uq ON alerts (kind, time);
 
 -- ---------------------------------------------------------------- the 4 known failures
 CREATE TABLE IF NOT EXISTS failure_events (

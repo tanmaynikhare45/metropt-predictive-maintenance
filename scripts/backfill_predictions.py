@@ -60,7 +60,7 @@ def main():
         # monthly chunks with 1 day of overlap: the rolling features need 24 h of history
         for period in pd.period_range(raw.index.min(), raw.index.max(), freq="M"):
             start, end = period.start_time, period.end_time
-            chunk = raw.loc[start - pd.Timedelta("1D"): end]
+            chunk = raw.loc[start - pd.Timedelta("2D"): end]
             if len(chunk) == 0:
                 continue
             feat = build_window_features(chunk, min_rows=min_rows)

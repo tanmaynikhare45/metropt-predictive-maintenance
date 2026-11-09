@@ -146,9 +146,10 @@ def predictions(
 ):
     if model not in PRED_MODELS:
         raise HTTPException(422, f"model must be one of {sorted(PRED_MODELS)}")
+    pred_anchor = "%(end)s::timestamptz" if end else "COALESCE((SELECT max(time) FROM predictions WHERE model = %(m)s), (SELECT max(time) FROM sensor_readings))"
     query = (
         "SELECT time, score, flag FROM predictions "
-        "WHERE model = %(m)s AND time > " + ANCHOR + " - make_interval(hours => %(h)s) AND time <= " + ANCHOR + " "
+        "WHERE model = %(m)s AND time > " + pred_anchor + " - make_interval(hours => %(h)s) AND time <= " + pred_anchor + " "
         "ORDER BY time LIMIT %(lim)s"
     )
     return run(request, query, {"m": model, "h": hours, "end": end, "lim": MAX_ROWS})

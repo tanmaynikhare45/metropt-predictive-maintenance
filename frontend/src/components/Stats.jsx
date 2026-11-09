@@ -16,7 +16,7 @@ export default function Stats({ latest, config }) {
   return (
     <div className="stats">
       <Row label="Isolation Forest score" value={fmtNum(p.iforest?.score)} hint={config?.iforest_threshold != null ? `threshold ${fmtNum(config.iforest_threshold)}` : null} />
-      {p.lstm_ae && <Row label="LSTM autoencoder error" value={fmtNum(p.lstm_ae.score, 4)} hint={config?.lstm_threshold != null ? `threshold ${fmtNum(config.lstm_threshold, 4)}` : null} />}
+      {p.lstm_ae && <Row label="LSTM autoencoder " value={fmtNum(p.lstm_ae.score, 4)} hint={config?.lstm_threshold != null ? `threshold ${fmtNum(config.lstm_threshold, 4)}` : null} />}
       <Row label="Failure risk score" value={fmtNum(p.failure_risk?.score)} hint={config?.failure_threshold != null ? `threshold ${fmtNum(config.failure_threshold)}` : null} />
       <Row label="Newest scored window" value={win ? fmtFull(toMs(win)) : '–'} />
     </div>

@@ -11,7 +11,7 @@ from ml.features import build_rolling_features, build_window_features, window_fe
 from ml.inference import load_models
 
 
-def make_models(directory, raw, min_rows=5):
+def make_models(directory, raw, min_rows=5, failure_threshold=0.3):
     feat = build_window_features(raw, min_rows=min_rows)
     names = window_feature_names()
     scaler = StandardScaler().fit(feat[names])
@@ -30,5 +30,5 @@ def make_models(directory, raw, min_rows=5):
         "isolation_forest_threshold": float(np.quantile(-iso.score_samples(X), 0.95)),
         "lstm_threshold": 1.0, "min_consecutive_windows": 3}))
     (directory / "failure_config.json").write_text(json.dumps({
-        "features": list(R.columns), "threshold": 0.3, "min_consecutive_windows": 3}))
+        "features": list(R.columns), "threshold": float(failure_threshold), "min_consecutive_windows": 3}))
     return load_models(directory, load_lstm=False)

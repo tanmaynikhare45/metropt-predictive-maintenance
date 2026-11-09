@@ -41,8 +41,13 @@ def main():
     sink = Sink()
     builder = WindowBuilder(min_rows=config.MIN_ROWS_PER_WINDOW)
     pipeline = Pipeline(sink, builder, Scorer(models))
+    from alerts.service import AlertService
+    alert_service = AlertService.from_env(models)
+    pipeline.on_scored.append(alert_service)
+
     print(f"Models: anomaly={models.iso is not None}, lstm={models.lstm is not None}, failure={models.failure is not None}"
           f" | min readings per window = {config.MIN_ROWS_PER_WINDOW}")
+    print(alert_service.describe())
 
     consumer = Consumer({
         "bootstrap.servers": args.bootstrap,
@@ -140,6 +145,7 @@ def main():
     flush_and_commit(last_msg)
     consumer.close()
     sink.close()
+    alert_service.close()
     print(f"Done. messages={state['msgs']:,} bad={state['bad']} windows scored={pipeline.stats['windows_scored']}")
 
 
