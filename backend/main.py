@@ -10,16 +10,24 @@ Notes
 - Every endpoint that returns a time series downsamples in SQL and caps the rows.
 """
 import os
+import subprocess
+import sys
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from threading import Lock
 from typing import Optional
+from uuid import uuid4
 
 import pandas as pd
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 from psycopg import sql
+from confluent_kafka.admin import AdminClient, NewTopic
 
 from ml.inference import forecast_sensor, load_models
 
@@ -41,6 +49,67 @@ PRED_MODELS = {"iforest", "lstm_ae", "failure_risk"}
 ANCHOR = "COALESCE(%(end)s::timestamptz, (SELECT max(time) FROM sensor_readings))"
 
 _forecast_cache = {}
+ROOT = Path(__file__).resolve().parents[1]
+_simulation_lock = Lock()
+
+
+class SimulationRequest(BaseModel):
+    start: datetime
+    end: datetime
+    speed: float = Field(default=60, ge=1, le=1000)
+    reset_interval: bool = False
+
+
+def _local_simulation_request(request: Request):
+    # Simulation launches a local producer process; keep this endpoint unavailable to remote callers.
+    if not request.client or request.client.host not in {"127.0.0.1", "::1", "testclient"}:
+        raise HTTPException(403, "simulation controls are available only from this machine")
+
+
+def _consumer_group_active(admin, group_id):
+    group = admin.describe_consumer_groups([group_id])[group_id].result(timeout=5)
+    return str(group.state).split(".")[-1].lower() == "stable" and bool(group.members)
+
+
+def _delete_simulation_topic(bootstrap: str, topic: str):
+    try:
+        admin = AdminClient({"bootstrap.servers": bootstrap})
+        admin.delete_topics([topic], operation_timeout=5)[topic].result(timeout=7)
+    except Exception:
+        pass
+
+
+def _ensure_simulation_consumer(request: Request, bootstrap: str, group_id: str, topic: str):
+    admin = AdminClient({"bootstrap.servers": bootstrap})
+    try:
+        admin.list_topics(timeout=5)
+    except Exception as exc:
+        raise HTTPException(503, f"Kafka broker is not reachable at {bootstrap}; start Kafka with docker compose -f infra/docker-compose.yml up -d kafka ({exc.__class__.__name__})")
+    try:
+        admin.create_topics([NewTopic(topic, num_partitions=1, replication_factor=1)])[topic].result(timeout=10)
+    except Exception as exc:
+        raise HTTPException(503, f"could not create an isolated Kafka topic for this replay ({exc.__class__.__name__})")
+
+    process = subprocess.Popen(
+        [sys.executable, "-m", "streaming.consumer", "--bootstrap", bootstrap,
+         "--group", group_id, "--topic", topic, "--idle-exit", "15"],
+        cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    request.app.state.simulation_consumer = process
+
+    deadline = time.monotonic() + 30
+    last_error = None
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise HTTPException(503, "the streaming consumer exited during startup; check the database, models, and Kafka settings")
+        try:
+            if _consumer_group_active(admin, group_id):
+                return process
+        except Exception as exc:
+            last_error = exc
+        time.sleep(1)
+    reason = f" ({last_error.__class__.__name__})" if last_error else ""
+    raise HTTPException(503, f"Kafka is running, but consumer group {group_id} did not become active within 30 seconds{reason}")
 
 
 @asynccontextmanager
@@ -48,7 +117,12 @@ async def lifespan(app: FastAPI):
     app.state.pool = make_pool()
     app.state.pool.open()
     app.state.models = load_models(load_lstm=False)     # the API does not need torch
+    app.state.simulation = None
+    app.state.simulation_consumer = None
     yield
+    for process in (app.state.simulation, app.state.simulation_consumer):
+        if process and process.poll() is None:
+            process.terminate()
     app.state.pool.close()
 
 
@@ -63,6 +137,161 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=getattr(exc, "headers", None),
+        )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"{exc.__class__.__name__}: {str(exc)}"},
+    )
+
+
+@app.post("/simulation/start")
+def start_simulation(body: SimulationRequest, request: Request):
+    """Replay a historical interval into Kafka for the running consumer to score and alert on."""
+    _local_simulation_request(request)
+    start = body.start if body.start.tzinfo else body.start.replace(tzinfo=timezone.utc)
+    end = body.end if body.end.tzinfo else body.end.replace(tzinfo=timezone.utc)
+    if end <= start:
+        raise HTTPException(422, "end must be later than start")
+    if end - start > timedelta(days=8):
+        raise HTTPException(422, "a simulation can cover at most 8 days")
+    parquet = ROOT / "data" / "processed" / "metropt3.parquet"
+    if not parquet.is_file():
+        raise HTTPException(503, "processed sensor data is missing: data/processed/metropt3.parquet")
+    from alerts import config as alert_config
+    from streaming import config as streaming_config
+    if not alert_config.SLACK_WEBHOOK_URL:
+        raise HTTPException(503, "set SLACK_WEBHOOK_URL in .env before starting a Slack simulation")
+    if not body.reset_interval:
+        raise HTTPException(422, "confirm reset_interval to replace stored readings, predictions, and alerts in this simulation range")
+    with _simulation_lock:
+        process = request.app.state.simulation
+        if process and process.poll() is None:
+            info = getattr(request.app.state, "simulation_info", {})
+            same_range = (info.get("start") and info.get("end") and
+                          datetime.fromisoformat(info["start"]) == start and
+                          datetime.fromisoformat(info["end"]) == end)
+            if same_range:
+                return {"status": "already_running", **info}
+            raise HTTPException(409, "another simulation is running; stop it or reload the dashboard to reconnect")
+        run_id = uuid4().hex[:12]
+        topic = f"sensors.simulation.{run_id}"
+        group_id = f"metropt-simulation-{run_id}"
+        consumer = _ensure_simulation_consumer(request, streaming_config.BOOTSTRAP, group_id, topic)
+        reset = subprocess.run(
+            [sys.executable, "scripts/reset_replay_range.py", "--from",
+             start.astimezone(timezone.utc).replace(tzinfo=None).date().isoformat() + " " +
+             start.astimezone(timezone.utc).replace(tzinfo=None).time().isoformat(timespec="seconds"),
+             "--to", end.astimezone(timezone.utc).replace(tzinfo=None).date().isoformat() + " " +
+             end.astimezone(timezone.utc).replace(tzinfo=None).time().isoformat(timespec="seconds"),
+             "--yes"],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        if reset.returncode:
+            if consumer and consumer.poll() is None:
+                consumer.terminate()
+            _delete_simulation_topic(streaming_config.BOOTSTRAP, topic)
+            raise HTTPException(503, f"could not prepare the simulation range ({reset.stderr.strip()[-300:]})")
+        process = subprocess.Popen(
+            [sys.executable, "-m", "streaming.producer", "--bootstrap", streaming_config.BOOTSTRAP,
+             "--topic", topic, "--start",
+             start.astimezone(timezone.utc).replace(tzinfo=None).isoformat(sep=" "),
+             "--end", end.astimezone(timezone.utc).replace(tzinfo=None).isoformat(sep=" "),
+             "--speed", str(body.speed)],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        request.app.state.simulation = process
+        request.app.state.simulation_consumer = consumer
+        request.app.state.simulation_info = {
+            "start": start.isoformat(), "end": end.isoformat(), "speed": body.speed,
+            "process_id": process.pid, "consumer_process_id": consumer.pid if consumer else None, "topic": topic,
+        }
+    return {"status": "started", "reset_rows": reset.stdout.strip().splitlines()[:1], **request.app.state.simulation_info}
+
+
+@app.get("/simulation/status")
+def simulation_status(request: Request):
+    _local_simulation_request(request)
+    process = request.app.state.simulation
+    info = getattr(request.app.state, "simulation_info", {})
+    if not process:
+        return {"status": "idle"}
+    code = process.poll()
+    consumer = request.app.state.simulation_consumer
+    consumer_code = consumer.poll() if consumer else None
+    sensor_time = None
+    if info.get("start") and info.get("end"):
+        try:
+            rows = run(request,
+                       "SELECT max(time) AS time FROM sensor_readings WHERE time >= %(start)s AND time < %(end)s",
+                       {"start": datetime.fromisoformat(info["start"]),
+                        "end": datetime.fromisoformat(info["end"])})
+            sensor_time = rows[0]["time"]
+        except Exception:
+            pass
+    drained = False
+    if code == 0 and consumer_code == 0 and sensor_time is not None:
+        finish = datetime.fromisoformat(info["end"])
+        drained = sensor_time >= finish - timedelta(minutes=1)
+    failed = (code is not None and code != 0) or (consumer_code is not None and consumer_code != 0)
+    incomplete = code == 0 and consumer_code == 0 and not drained
+    status = "failed" if failed else ("completed" if drained else ("incomplete" if incomplete else ("draining" if code == 0 else "running")))
+    progress = 0.0
+    if sensor_time is not None and info.get("start") and info.get("end"):
+        start = datetime.fromisoformat(info["start"])
+        finish = datetime.fromisoformat(info["end"])
+        progress = max(0.0, min(100.0, (sensor_time - start).total_seconds() / (finish - start).total_seconds() * 100))
+    if code is not None and consumer_code is not None and info.get("topic") and not info.get("topic_cleaned"):
+        from streaming.config import BOOTSTRAP
+        _delete_simulation_topic(BOOTSTRAP, info["topic"])
+        info["topic_cleaned"] = True
+    return {"status": status, "publisher": "running" if code is None else ("completed" if code == 0 else "failed"),
+            "consumer": "running" if consumer_code is None else ("stopped" if consumer_code == 0 else "failed"),
+            "progress": progress, "return_code": code,
+            "consumer_return_code": consumer_code,
+            "sensor_time": sensor_time.isoformat() if sensor_time else None, **info}
+
+
+@app.post("/simulation/stop")
+def stop_simulation(request: Request):
+    _local_simulation_request(request)
+    process = request.app.state.simulation
+    consumer = request.app.state.simulation_consumer
+    stopping = False
+    if process and process.poll() is None:
+        process.terminate()
+        stopping = True
+    if consumer and consumer.poll() is None:
+        consumer.terminate()
+        stopping = True
+    for child in (process, consumer):
+        if child and child.poll() is None:
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+    if process and process.poll() is not None and consumer and consumer.poll() is not None:
+        info = getattr(request.app.state, "simulation_info", {})
+        if info.get("topic"):
+            from streaming.config import BOOTSTRAP
+            _delete_simulation_topic(BOOTSTRAP, info["topic"])
+            info["topic_cleaned"] = True
+    if process and process.poll() is not None and consumer and consumer.poll() is not None:
+        request.app.state.simulation = None
+        request.app.state.simulation_consumer = None
+        request.app.state.simulation_info = {}
+    return {"status": "stopping" if stopping else "idle"}
 
 
 def run(request: Request, query, params=None):

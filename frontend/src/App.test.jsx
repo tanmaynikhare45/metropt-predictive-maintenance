@@ -22,6 +22,9 @@ vi.mock('./api', () => ({
   getPredictions: vi.fn(),
   getForecast: vi.fn(),
   getAlerts: vi.fn(),
+  getSimulationStatus: vi.fn().mockResolvedValue({ status: 'idle' }),
+  startSimulation: vi.fn(),
+  stopSimulation: vi.fn(),
 }))
 
 const t0 = Date.parse('2020-06-05T06:00:00Z')
@@ -82,18 +85,20 @@ describe('dashboard', () => {
   it('pins every request to a time before the failure', async () => {
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: 'Failure 1' }))
-    await waitFor(() => expect(api.getLatest).toHaveBeenLastCalledWith('2020-06-05T07:00:00.000Z'))
-    await waitFor(() => expect(api.getPredictions).toHaveBeenLastCalledWith(expect.objectContaining({ end: '2020-06-05T07:00:00.000Z' })))
+    await waitFor(() => expect(api.getLatest).toHaveBeenLastCalledWith('2020-06-05T10:00:00+00:00'))
+    await waitFor(() => expect(api.getPredictions).toHaveBeenLastCalledWith(expect.objectContaining({ end: '2020-06-05T10:00:00+00:00' })))
     expect(await screen.findByText('Pinned to (UTC)')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Live' }))
     await waitFor(() => expect(api.getLatest).toHaveBeenLastCalledWith(undefined))
   })
 
-  it('jumps to a chosen offset from the failure start', async () => {
+  it('pins directly to the failure start without offset shortcuts', async () => {
     render(<App />)
-    fireEvent.click(await screen.findByRole('button', { name: '6 h after' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Failure 1' }))
-    await waitFor(() => expect(api.getLatest).toHaveBeenLastCalledWith('2020-06-05T16:00:00.000Z'))
+    await waitFor(() => expect(api.getLatest).toHaveBeenLastCalledWith('2020-06-05T10:00:00+00:00'))
+    expect(screen.queryByRole('button', { name: '3 h before' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'at start' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '6 h after' })).toBeNull()
   })
 
   it('shows an offline banner and keeps the page usable when the API is down', async () => {

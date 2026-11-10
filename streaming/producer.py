@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--limit", type=int, default=None, help="stop after this many readings")
     ap.add_argument("--bad-every", type=int, default=0)
     ap.add_argument("--bootstrap", default=config.BOOTSTRAP)
+    ap.add_argument("--topic", default=config.TOPIC_RAW)
     args = ap.parse_args()
 
     df = pd.read_parquet(args.parquet).sort_index()          # the UNLABELED file: no failure labels
@@ -44,7 +45,7 @@ def main():
     cols = [c.lower() for c in SENSORS]
     values = df[SENSORS].astype(float).to_numpy()
     index = df.index
-    print(f"Replaying {len(df):,} readings from {index[0]} to {index[-1]} at speed x{args.speed:g} -> {config.TOPIC_RAW}")
+    print(f"Replaying {len(df):,} readings from {index[0]} to {index[-1]} at speed x{args.speed:g} -> {args.topic}")
 
     failed = []
 
@@ -74,7 +75,7 @@ def main():
 
             while True:
                 try:
-                    producer.produce(config.TOPIC_RAW, payload.encode("utf-8"), on_delivery=on_delivery)
+                    producer.produce(args.topic, payload.encode("utf-8"), on_delivery=on_delivery)
                     break
                 except BufferError:                           # local queue full: wait for deliveries
                     producer.poll(0.5)
@@ -89,6 +90,7 @@ def main():
     print(f"Done. Sent {sent:,} messages. Delivery errors: {len(failed)}")
     if failed:
         print("First error:", failed[0])
+        sys.exit(1)
 
 
 if __name__ == "__main__":

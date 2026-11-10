@@ -30,8 +30,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--bootstrap", default=config.BOOTSTRAP)
     ap.add_argument("--group", default=config.GROUP_ID)
+    ap.add_argument("--topic", default=config.TOPIC_RAW)
     ap.add_argument("--lstm", action="store_true", help="also load and run the LSTM autoencoder")
-    ap.add_argument("--idle-exit", type=float, default=0, help="exit after this many idle seconds (0 = never)")
+    ap.add_argument("--idle-exit", type=float, default=0, help="exit after this many idle seconds, including before the first message (0 = never)")
     args = ap.parse_args()
 
     models = load_models(load_lstm=args.lstm)
@@ -55,7 +56,7 @@ def main():
         "auto.offset.reset": "earliest",
         "enable.auto.commit": False,                 # we commit manually, after the database write
     })
-    consumer.subscribe([config.TOPIC_RAW])
+    consumer.subscribe([args.topic])
     dlq = Producer({"bootstrap.servers": args.bootstrap})
 
     state = {"running": True, "bad": 0, "msgs": 0}
@@ -82,7 +83,7 @@ def main():
             consumer.commit(message=last_msg, asynchronous=False)
         return True
 
-    print(f"Listening on {config.TOPIC_RAW} ... (Ctrl+C to stop)")
+    print(f"Listening on {args.topic} ... (Ctrl+C to stop)")
     last_msg = None
     last_flush = last_report = last_data = time.monotonic()
     report_msgs = 0
@@ -97,7 +98,7 @@ def main():
                     if flush_and_commit(last_msg):
                         last_msg = None
                     last_flush = now
-            if args.idle_exit and state["msgs"] and now - last_data > args.idle_exit:
+            if args.idle_exit and now - last_data > args.idle_exit:
                 print("Idle, exiting.")
                 break
         elif msg.error():

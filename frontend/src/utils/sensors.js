@@ -6,6 +6,14 @@ export const SENSORS = [
   { key: 'reservoirs', label: 'Reservoirs' },
   { key: 'oil_temperature', label: 'Oil temperature' },
   { key: 'motor_current', label: 'Motor current' },
+  { key: 'comp', label: 'COMP' },
+  { key: 'dv_eletric', label: 'DV electric' },
+  { key: 'towers', label: 'Towers' },
+  { key: 'mpg', label: 'MPG' },
+  { key: 'lps', label: 'LPS' },
+  { key: 'pressure_switch', label: 'Pressure switch' },
+  { key: 'oil_level', label: 'Oil level' },
+  { key: 'caudal_impulses', label: 'Caudal impulses' },
 ]
 
 export const MAX_POINTS = 300

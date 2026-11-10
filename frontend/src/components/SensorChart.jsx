@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSensors } from '../api'
 import usePolling from '../hooks/usePolling'
@@ -8,9 +8,12 @@ import Card from './Card'
 import { axisProps, COLORS, failureAreas, tooltipProps } from './chartTheme'
 
 const HOURS = [1, 2, 6, 12, 24]
-export default function SensorChart({ end, refreshMs, failures, className }) {
+export default function SensorChart({ end, refreshMs, failures, className, showAllSensors = false }) {
   const [hours, setHours] = useState(2)
   const [selected, setSelected] = useState(['tp2', 'tp3', 'oil_temperature', 'motor_current'])
+  useEffect(() => {
+    if (showAllSensors) setSelected(SENSORS.map((sensor) => sensor.key))
+  }, [showAllSensors])
   const ordered = SENSORS.filter((s) => selected.includes(s.key))
   const keys = ordered.map((s) => s.key)
 
@@ -40,7 +43,7 @@ export default function SensorChart({ end, refreshMs, failures, className }) {
   return (
     <Card
       className={className}
-      title="Live sensors"
+      title={showAllSensors ? 'All sensor readings' : 'Live sensors'}
       subtitle={`Average per ${bucketFor(hours)} min · red = known failures`}
       right={controls}
       loading={loading && !data}

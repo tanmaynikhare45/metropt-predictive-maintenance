@@ -21,3 +21,7 @@ export const getPredictions = ({ model, hours, end }) =>
   get('/predictions', { model, hours, ...withEnd(end) })
 
 export const getForecast = ({ sensor, end }) => get('/forecast', { sensor, ...withEnd(end) })
+export const startSimulation = ({ start, end, speed, reset_interval }) =>
+  http.post('/simulation/start', { start, end, speed, reset_interval }).then((r) => r.data)
+export const stopSimulation = () => http.post('/simulation/stop').then((r) => r.data)
+export const getSimulationStatus = () => get('/simulation/status')

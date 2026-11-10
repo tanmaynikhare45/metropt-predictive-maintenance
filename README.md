@@ -223,36 +223,60 @@ notebooks/01_eda.ipynb
 
 Select your `.venv` Python kernel and run the notebook cells.
 
-### 6️⃣ Run the Backend
+### 6️⃣ Configure and Start TimescaleDB and Kafka
 
-After implementing the FastAPI application and installing its
-dependencies:
+Copy `.env.example` to `.env`, set your own database password and matching
+`DATABASE_URL`, and optionally add your own Slack incoming webhook as
+`SLACK_WEBHOOK_URL`. Never commit `.env`.
 
-``` bash
+``` powershell
+docker compose -f infra/docker-compose.yml up -d timescaledb kafka
+```
+
+### 7️⃣ Load Data and Start the API
+
+The project expects `data/processed/metropt3.parquet` and
+`data/processed/failures.json` to be present.
+
+``` powershell
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python scripts/load_sensors.py
+python scripts/backfill_predictions.py --no-lstm
 uvicorn backend.main:app --reload
 ```
 
-Open the interactive API documentation at:
+The API is at `http://127.0.0.1:8000`; its interactive documentation is at
+`http://127.0.0.1:8000/docs`.
 
-➡️ http://127.0.0.1:8000/docs
+### 8️⃣ Start the Dashboard
 
-### 7️⃣ Run the Frontend
+In another PowerShell window:
 
-After setting up the React application:
-
-``` bash
+``` powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Vite will display the local frontend URL in your terminal.
+Open the Vite URL shown in the terminal. Click **Simulate** beside a known
+failure to replay only that failure interval through an isolated Kafka topic
+and consumer. The API starts the consumer automatically. The dashboard clock
+follows the newest reading written by the consumer and displays all sensor
+signals. The consumer scores each completed window and sends sustained alerts
+to Slack when `SLACK_WEBHOOK_URL` is configured.
 
-> These commands require the corresponding files and services to exist
-> and be configured. They do not mean every component is already
-> runnable.
+Simulation controls are local-development-only. Start Docker, the database,
+Kafka and the API first, and configure `SLACK_WEBHOOK_URL`. The API checks
+that the broker is reachable and starts an isolated consumer before it clears
+anything.
+Before replay, the dashboard asks for
+confirmation to clear readings, predictions, and alert history in the selected
+interval. The original parquet file is preserved and the consumer rebuilds the
+database records during replay. Stopping early leaves that interval partially
+reloaded; run the same simulation again to finish it.
 
-## 🔌 Planned API Endpoints
+## 🔌 API Endpoints
 
   -----------------------------------------------------------------------
   Method                  Endpoint                Purpose
@@ -276,10 +300,18 @@ Vite will display the local frontend URL in your terminal.
 
   `POST`                  `/whatif`               🧪 Evaluate a simulated
                                                   sensor scenario
+
+  `POST`                  `/simulation/start`     ▶️ Reset and replay a
+                                                  confirmed local interval
+
+  `GET`                   `/simulation/status`    📡 Check replay publisher
+                                                  status
+
+  `POST`                  `/simulation/stop`      ⏹️ Stop the replay publisher
   -----------------------------------------------------------------------
 
-These endpoints are planned. Request parameters and response schemas
-should be documented as each endpoint is implemented.
+`/simulation/start`, `/simulation/status`, and `/simulation/stop` are
+local-development controls. `/health-index` and `/whatif` remain planned.
 
 ## 🗺️ Development Roadmap
 

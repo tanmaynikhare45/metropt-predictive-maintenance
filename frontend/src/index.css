@@ -46,7 +46,19 @@ code { background: #0b1220; border: 1px solid var(--border); padding: 1px 6px; b
 .clock strong { font-size: 0.95rem; font-variant-numeric: tabular-nums; }
 .timebar { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 12px; }
 .shortcuts { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.failure-actions { display: inline-flex; gap: 4px; align-items: center; }
+.simulation-bar { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 1px solid #1d4ed8; border-radius: 9px; background: rgba(29, 78, 216, 0.12); padding: 9px 12px; font-size: 0.85rem; }
+.simulation-bar span { display: grid; gap: 2px; }
+.simulation-bar small { color: var(--muted); font-size: 0.75rem; }
+.simulation-error { grid-column: 1 / -1; color: #fca5a5; font-size: 0.82rem; }
 .pin-input { display: flex; align-items: center; gap: 8px; }
+.live-sim-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sim-select {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 0.85rem;
+}
+.chip.stop-btn { background: #b91c1c; color: white; border-color: #ef4444; }
+.chip.stop-btn:hover { background: #dc2626; border-color: #f87171; color: white; }
 input[type='datetime-local'] {
   background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
   border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 0.85rem;
@@ -76,6 +88,7 @@ button { font: inherit; cursor: pointer; }
 .chip { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; font-size: 0.8rem; }
 .chip:hover { border-color: var(--blue); color: var(--blue); }
 .chip.on { background: #1d4ed8; color: white; border-color: #3b82f6; }
+.chip:disabled { opacity: 0.45; cursor: not-allowed; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .pill { background: var(--panel-2); color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px; font-size: 0.8rem; }
 .pill.on { color: var(--blue); border-color: var(--blue); background: rgba(56, 189, 248, 0.08); }
