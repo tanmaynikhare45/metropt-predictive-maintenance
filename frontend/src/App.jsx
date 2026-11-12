@@ -8,7 +8,7 @@ import Header from './components/Header'
 import RiskGauge from './components/RiskGauge'
 import SensorChart from './components/SensorChart'
 import Stats from './components/Stats'
-import TwinPlaceholder from './components/TwinPlaceholder'
+import DigitalTwin from './components/DigitalTwin'
 import usePolling from './hooks/usePolling'
 
 const SIM_SPEED = 300 // 300x data time; the display clock follows persisted sensor readings
@@ -175,7 +175,7 @@ export default function App() {
         <SensorChart className="span-12" end={end} refreshMs={fast} failures={fail} showAllSensors={!!simulation} />
         <ForecastChart className="span-7" end={forecastEnd} refreshMs={slow} config={cfg} />
         <AlertTable className="span-5" refreshMs={alertRefresh} onPin={setPinnedEnd} />
-        <TwinPlaceholder className="span-12" />
+        <DigitalTwin className="span-12" latest={latest.data} loading={latest.loading} error={latest.error} />
       </main>
 
       <footer className="foot muted">

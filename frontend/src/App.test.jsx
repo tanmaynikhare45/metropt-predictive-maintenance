@@ -72,7 +72,7 @@ describe('dashboard', () => {
     expect(await screen.findByRole('img', { name: /Failure risk 71 percent/ })).toBeTruthy()
     expect(await screen.findByText('0.710')).toBeTruthy()                           // risk score in the stats
     expect(await screen.findByText(/No alerts yet/)).toBeTruthy()
-    expect(screen.getByText(/Coming in Phase 7/)).toBeTruthy()
+    expect(screen.getByText(/Digital Twin/)).toBeTruthy()
   })
 
   it('renders the charts without errors', async () => {

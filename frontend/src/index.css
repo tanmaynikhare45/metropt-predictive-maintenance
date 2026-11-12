@@ -150,3 +150,53 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: t
 .tag.sev-warning { color: var(--amber); border-color: #78350f; }
 
 .foot { margin-top: 18px; text-align: center; }
+
+/* ---------------------------------------------------------------- digital twin */
+.twin-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1100px) { .twin-layout { grid-template-columns: 1fr; } }
+
+.twin-schematic { min-width: 0; }
+
+.twin-panels { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+/* health index */
+.twin-health {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center;
+}
+.twin-health-label { color: var(--muted); font-size: 0.8rem; }
+.twin-health-value { font-size: 1.5rem; font-weight: 700; text-align: right; }
+.twin-health-state { color: var(--muted); font-size: 0.75rem; }
+.twin-health-track { grid-column: 1 / -1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.twin-health-fill  { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+/* section titles */
+.twin-section-title { font-size: 0.72rem; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 6px; }
+
+/* analog gauge bars */
+.twin-gauges { display: flex; flex-direction: column; gap: 7px; }
+.twin-gauge { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; }
+.twin-gauge-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.twin-gauge-label  { font-size: 0.78rem; color: var(--muted); }
+.twin-gauge-value  { font-size: 0.82rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.twin-gauge-track  { height: 7px; background: var(--border); border-radius: 4px; position: relative; overflow: visible; }
+.twin-gauge-fill   { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.twin-gauge-tick   { position: absolute; top: -3px; width: 2px; height: 13px; border-radius: 1px; }
+.twin-gauge-tick.warn  { background: #f59e0b88; }
+.twin-gauge-tick.alert { background: #ef444488; }
+.twin-gauge-desc   { font-size: 0.7rem; color: var(--muted); margin-top: 3px; }
+
+/* digital signal LEDs */
+.twin-leds { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.twin-led  {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px;
+}
+.twin-led-dot   { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; transition: background 0.3s, box-shadow 0.3s; }
+.twin-led-label { font-size: 0.75rem; font-weight: 600; }
+.twin-led-state { font-size: 0.68rem; color: var(--muted); }
