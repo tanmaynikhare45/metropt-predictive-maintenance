@@ -173,8 +173,8 @@ export default function App() {
 
         <AnomalyChart className="span-8" end={end} refreshMs={fast} config={cfg} failures={fail} />
         <SensorChart className="span-12" end={end} refreshMs={fast} failures={fail} showAllSensors={!!simulation} />
-        <ForecastChart className="span-7" end={forecastEnd} refreshMs={slow} config={cfg} />
-        <AlertTable className="span-5" refreshMs={alertRefresh} onPin={setPinnedEnd} />
+        <ForecastChart className="span-12" end={forecastEnd} refreshMs={slow} config={cfg} />
+        <AlertTable className="span-12" refreshMs={alertRefresh} onPin={setPinnedEnd} pinnedEnd={pinnedEnd} />
         <DigitalTwin className="span-12" latest={latest.data} loading={latest.loading} error={latest.error} />
       </main>
 
