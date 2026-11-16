@@ -61,7 +61,9 @@ class SimulationRequest(BaseModel):
 
 
 def _local_simulation_request(request: Request):
-    # Simulation launches a local producer process; keep this endpoint unavailable to remote callers.
+    # Allow remote simulation when deployed if ALLOW_REMOTE_SIMULATION is set (default true)
+    if os.getenv("ALLOW_REMOTE_SIMULATION", "1") == "1":
+        return
     if not request.client or request.client.host not in {"127.0.0.1", "::1", "testclient"}:
         raise HTTPException(403, "simulation controls are available only from this machine")
 
